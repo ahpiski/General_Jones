@@ -43,17 +43,19 @@ chat_mute_clocks_dict = load_dicts_from_file("dicts.jason")
 
 
 def mute_group(chat_id):
-    mute_permissions = types.ChatPermissions(can_send_messages=False)
+    mute_permissions = bot.get_chat(chat_id).permissions
+    mute_permissions.can_send_messages = False
     bot.set_chat_permissions(chat_id, mute_permissions)
-    bot.send_message(chat_id , "The designated time for silence has now commenced. All communication is hereby prohibited. I respectfully request that the admins refrain from engaging in chat.")
+    bot.send_message(chat_id , "The designated time for silenceunmute_permissions = types.ChatPermissions(can_send_messages=True) has now commenced. All communication is hereby prohibited. I respectfully request that the admins refrain from engaging in chat.")
     
 def unmute_group(chat_id):
-    unmute_permissions = types.ChatPermissions(can_send_messages=True)
+    unmute_permissions = bot.get_chat(chat_id).permissions
+    unmute_permissions.can_send_messages = True
     bot.set_chat_permissions(chat_id, unmute_permissions)
     bot.send_message(chat_id , "The designated time for silence has concluded! Communication may now resume without restriction.")
 
-def send_warn(chat_id):
-    bot.send_message(chat_id, "Attention! The group is scheduled for closure in precisely 15 minutes. Prepare yourselves accordingly!")
+def send_warn(chat_id , min):
+    bot.send_message(chat_id, f"Attention! The group is scheduled for closure in precisely {min} minutes. Prepare yourselves accordingly!")
 
 
 
@@ -68,12 +70,11 @@ def schedule_mute(chat_mute_clocks_dict):
             schedule_time = current_time.replace(hour=hour, minute=minute, second=0, microsecond=0)
             schedule.every().day.at(schedule_time.strftime("%H:%M")).do(mute_group, key)
         for times in mute_time:
-            hour, minute = map(int, times.split(':'))
-            minutes = (60 * hour) + minute -15
-            minute = minutes % 60
-            hour = (minutes - minute) / 60
-            schedule_time = current_time.replace(hour=int(hour), minute=int(minute), second=0, microsecond=0)
-            schedule.every().day.at(schedule_time.strftime("%H:%M")).do(send_warn, key)
+            mins = {5 , 15 , 30 , 60}
+            for min in mins:
+                hour , minute = clock.reduce_rime(times , min)
+                schedule_time = current_time.replace(hour=int(hour), minute=int(minute), second=0, microsecond=0)
+                schedule.every().day.at(schedule_time.strftime("%H:%M")).do(send_warn, key , min)
         for times in unmute_time:
             hour, minute = map(int, times.split(':'))
             schedule_time = current_time.replace(hour=hour, minute=minute, second=0, microsecond=0)
