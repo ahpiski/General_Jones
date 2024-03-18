@@ -10,7 +10,7 @@ from datetime import datetime
 
 
 
-tzone = "Iran"
+
 
 with open('api_key.txt', 'r') as file : api_key = file.readline().strip()
 bot = telebot.TeleBot(api_key)
@@ -87,7 +87,7 @@ def schedule_mute(chat_mute_clocks_dict):
     for key in chat_mute_clocks_dict.keys():
         chat_id = key
         mute_time , unmute_time = clock.split_clocks(chat_mute_clocks_dict[key])
-        current_time = datetime.now(pytz.timezone(tzone))
+        current_time = datetime.now(pytz.timezone(clock.tzone))
         for times in mute_time:
             hour, minute = map(int, times.split(':'))
             schedule_time = current_time.replace(hour=hour, minute=minute, second=0, microsecond=0)
@@ -175,8 +175,16 @@ def handle_get_status(message):
     send_status(message.chat.id)
 
 @bot.message_handler(commands=['help'])
-def hande_help(message):
-    bot.reply_to(message , "To establish mute time periods, issue the command /mute.\nTo clear the mute periods table, use /clear.\nFor a status update on mute time periods, use /get_status.")
+def handle_help(message):
+    bot.reply_to(message , "To establish mute time periods, issue the command /mute.\nTo clear the mute periods table, use /clear.\nFor a status update on mute time periods, use /get_status.\nTo mute the group, utilize /set mute. Conversely, for unmuting, issue /set unmute.")
+
+@bot.message_handler(commands=['set'])
+def handle_set(message):
+    set = ' '.join(message.text.split()[1:])
+    if (is_admin(message)): 
+        if(set == 'mute'): mute_group(message.chat.id)
+        if(set == 'unmute'): unmute_group(message.chat.id)
+
 
 @bot.message_handler(func=lambda message: True, content_types=['new_chat_members'])
 def greet_new_members(message):

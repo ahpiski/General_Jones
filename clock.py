@@ -1,4 +1,8 @@
 #gpt generated 
+from datetime import datetime
+import pytz
+
+tzone = "Iran"
 
 def merge_time_periods(time_periods):
     time_dict = {}
@@ -61,3 +65,16 @@ def reduce_rime(time , min):
     minute = minutes % 60
     hour = (minutes - minute) / 60
     return  hour , minute
+
+def is_time_in_period(period_str):
+    time_str = datetime.now(pytz.timezone(tzone)).strftime('%H:%M')
+    time_format = '%H:%M'
+    time = datetime.strptime(time_str, time_format)
+    start_str, end_str = period_str.split('-')
+    start_time = datetime.strptime(start_str, time_format)
+    end_time = datetime.strptime(end_str, time_format)
+    iran_timezone = pytz.timezone('Asia/Tehran')
+    time = iran_timezone.localize(time)
+    start_time = iran_timezone.localize(start_time)
+    end_time = iran_timezone.localize(end_time)
+    return start_time <= time <= end_time
