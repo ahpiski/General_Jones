@@ -43,21 +43,44 @@ chat_mute_clocks_dict = load_dicts_from_file("dicts.jason")
 
 
 def mute_group(chat_id):
-    mute_permissions = bot.get_chat(chat_id).permissions
-    mute_permissions.can_send_messages = False
+    permissions = bot.get_chat(chat_id).permissions
+    mute_permissions = types.ChatPermissions(
+        can_send_messages=False,
+        can_send_media_messages=False,
+        can_send_polls=False,
+        can_send_other_messages=False,
+        can_add_web_page_previews=False,
+        can_invite_users=False,
+        can_pin_messages=permissions.can_pin_messages,
+        can_change_info=permissions.can_change_info,
+        can_manage_topics=permissions.can_manage_topics
+    )
     bot.set_chat_permissions(chat_id, mute_permissions)
-    bot.send_message(chat_id , "The designated time for silenceunmute_permissions = types.ChatPermissions(can_send_messages=True) has now commenced. All communication is hereby prohibited. I respectfully request that the admins refrain from engaging in chat.")
+    bot.send_message(chat_id , "The designated time for silence has now commenced. All communication is hereby prohibited. I respectfully request that the admins refrain from engaging in chat.")
     
 def unmute_group(chat_id):
-    unmute_permissions = bot.get_chat(chat_id).permissions
-    unmute_permissions.can_send_messages = True
+    permissions = bot.get_chat(chat_id).permissions
+    unmute_permissions = types.ChatPermissions(
+        can_send_messages=True,
+        can_send_media_messages=True,
+        can_send_polls=True,
+        can_send_other_messages=True,
+        can_add_web_page_previews=True,
+        can_invite_users=True,
+        can_pin_messages=permissions.can_pin_messages,
+        can_change_info=permissions.can_change_info,
+        can_manage_topics=permissions.can_manage_topics
+    )
     bot.set_chat_permissions(chat_id, unmute_permissions)
     bot.send_message(chat_id , "The designated time for silence has concluded! Communication may now resume without restriction.")
 
 def send_warn(chat_id , min):
     bot.send_message(chat_id, f"Attention! The group is scheduled for closure in precisely {min} minutes. Prepare yourselves accordingly!")
 
-
+def say_hello(chat_id):
+    bot.send_message(chat_id, "General Jones here, ready to enforce order. Tell me the time and I'll lock down the chat for maximum focus. Remember, discipline is key!")
+    bot.send_message(chat_id, "To obtain a list of available commands, simply use /help.")
+    bot.send_message(chat_id, "I should be granted admin status and have the required permissions.")
 
 def schedule_mute(chat_mute_clocks_dict):
     schedule.clear()
@@ -82,7 +105,7 @@ def schedule_mute(chat_mute_clocks_dict):
 
 schedule_mute(chat_mute_clocks_dict)
 
-time_range_pattern = re.compile(r'^\d{2}:\d{2}-\d{2}:\d{2}$')
+time_range_pattern = re.compile(r'^(?:[01]\d|2[0-4]):(?:[0-5]\d)-(?:[01]\d|2[0-4]):(?:[0-5]\d)$')
 
 
 def is_admin(message):
@@ -128,7 +151,6 @@ def handle_mute_command(message):
                     chat_mute_clocks_dict[chat.id] = list(set(chat_mute_clocks_dict[chat.id]))#remove dupplications
                     chat_mute_clocks_dict[chat.id] = clock.No_clock_interference(chat_mute_clocks_dict[chat.id])#manage interferences
                     save_dicts_to_file(chat_mute_clocks_dict, "dicts.jason")
-                    print(chat_mute_clocks_dict)
                     send_status(chat.id)
                     schedule_mute(chat_mute_clocks_dict)
                 else: bot.reply_to(message, "it appears an issue has arisen. It's plausible that I lack the necessary administrative privileges or permissions to enact the mute function.")
@@ -144,12 +166,24 @@ def handle_mute_command(message):
     if is_admin(message):
         del chat_mute_clocks_dict[message.chat.id]
         save_dicts_to_file(chat_mute_clocks_dict , "dicts.jason")
+        schedule_mute(chat_mute_clocks_dict)
         bot.send_message(message.chat.id , "The time periods for silence have been successfully lifted.")
     else: bot.reply_to(message, "Respectfully, it appears you lack the necessary administrative privileges. Orders can only be accepted from those holding the esteemed position of admin, as per protocol.")
 
 @bot.message_handler(commands=['get_status'])
 def handle_get_status(message):
     send_status(message.chat.id)
+
+@bot.message_handler(commands=['help'])
+def hande_help(message):
+    bot.reply_to(message , "To establish mute time periods, issue the command /mute.\nTo clear the mute periods table, use /clear.\nFor a status update on mute time periods, use /get_status.")
+
+@bot.message_handler(func=lambda message: True, content_types=['new_chat_members'])
+def greet_new_members(message):
+    for member in message.new_chat_members:
+        if member.id == bot.get_me().id:
+            say_hello(message.chat.id)
+            break
 
 def scheduler():
     while True:
