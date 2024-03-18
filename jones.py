@@ -99,8 +99,10 @@ def can_mute_all(chat_id):
     else:
         return False
 def send_status(chat_id):
-    clocks_strings = '\n'.join(chat_mute_clocks_dict[chat_id])
-    bot.send_message(chat_id, f"These designated times are established as periods during which communication is restricted:\n{clocks_strings}")
+    if (chat_id in chat_mute_clocks_dict):
+        clocks_strings = '\n'.join(chat_mute_clocks_dict[chat_id])
+        bot.send_message(chat_id, f"These designated times are established as periods during which communication is restricted:\n{clocks_strings}")
+    else : bot.send_message(chat_id,"There are presently no established time periods for group silence.")
 
 
 
