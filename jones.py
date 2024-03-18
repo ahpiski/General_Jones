@@ -14,28 +14,44 @@ tzone = "Iran"
 
 with open('api_key.txt', 'r') as file : api_key = file.readline().strip()
 bot = telebot.TeleBot(api_key)
+def json_int_keys_pairs_hook(pairs):
+    result = {}
+    for key, value in pairs:
+        try:
+            # Try to convert the key to an integer
+            key = int(key)
+        except ValueError:
+            # If conversion fails, keep it as it is
+            pass
+        result[key] = value
+    return result
 
-def save_dicts_to_file(chat_permissions_dict , chat_mute_clocks_dict, filename):
+def save_dicts_to_file(chat_mute_clocks_dict, filename):
     with open(filename, 'w') as file:
-        json.dump((chat_permissions_dict , chat_mute_clocks_dict), file)
+        json.dump((chat_mute_clocks_dict), file)
 
 def load_dicts_from_file(filename):
     try:
         with open(filename, 'r') as file:
-            chat_permissions_dict , chat_mute_clocks_dict = json.load(file)
+            chat_mute_clocks_dict = json.load(file , object_pairs_hook=json_int_keys_pairs_hook)
     except FileNotFoundError:
-        chat_permissions_dict , chat_mute_clocks_dict= {}, {}
-    return chat_permissions_dict , chat_mute_clocks_dict
+        chat_mute_clocks_dict= {}
+    return chat_mute_clocks_dict
 
 
-chat_permissions_dict , chat_mute_clocks_dict = load_dicts_from_file("dicts.jason")
+chat_mute_clocks_dict = load_dicts_from_file("dicts.jason")
+
 
 def mute_group(chat_id):
     mute_permissions = types.ChatPermissions(can_send_messages=False)
     bot.set_chat_permissions(chat_id, mute_permissions)
+    bot.send_message(chat_id , "The designated time for silence has now commenced. All communication is hereby prohibited. I respectfully request that the admins refrain from engaging in chat.")
+    
 def unmute_group(chat_id):
-    unmute_permissions = chat_permissions_dict[chat_id]
+    unmute_permissions = types.ChatPermissions(can_send_messages=True)
     bot.set_chat_permissions(chat_id, unmute_permissions)
+    bot.send_message(chat_id , "The designated time for silence has concluded! Communication may now resume without restriction.")
+
 def send_warn(chat_id):
     bot.send_message(chat_id, "Attention! The group is scheduled for closure in precisely 15 minutes. Prepare yourselves accordingly!")
 
@@ -82,7 +98,11 @@ def can_mute_all(chat_id):
         return True
     else:
         return False
-    
+def send_status(chat_id):
+    clocks_strings = '\n'.join(chat_mute_clocks_dict[chat_id])
+    bot.send_message(chat_id, f"These designated times are established as periods during which communication is restricted:\n{clocks_strings}")
+
+
 
 @bot.message_handler(func=lambda message: message.chat.type == 'private')
 def private_message(message):
@@ -104,9 +124,9 @@ def handle_mute_command(message):
                     chat_mute_clocks_dict.setdefault(chat.id, []).append(time_range)
                     chat_mute_clocks_dict[chat.id] = list(set(chat_mute_clocks_dict[chat.id]))#remove dupplications
                     chat_mute_clocks_dict[chat.id] = clock.No_clock_interference(chat_mute_clocks_dict[chat.id])#manage interferences
-                    clocks_strings = '\n'.join(chat_mute_clocks_dict[chat.id])
-                    save_dicts_to_file(chat_permissions_dict , chat_mute_clocks_dict, "dicts.jason")
-                    bot.reply_to(message, f"These designated times are established as periods during which communication is restricted:\n{clocks_strings}")
+                    save_dicts_to_file(chat_mute_clocks_dict, "dicts.jason")
+                    print(chat_mute_clocks_dict)
+                    send_status(chat.id)
                     schedule_mute(chat_mute_clocks_dict)
                 else: bot.reply_to(message, "it appears an issue has arisen. It's plausible that I lack the necessary administrative privileges or permissions to enact the mute function.")
             else:
@@ -116,6 +136,17 @@ def handle_mute_command(message):
     else: bot.reply_to(message, "Respectfully, it appears you lack the necessary administrative privileges. Orders can only be accepted from those holding the esteemed position of admin, as per protocol.")
     return
 
+@bot.message_handler(commands=['clear'])
+def handle_mute_command(message):
+    if is_admin(message):
+        del chat_mute_clocks_dict[message.chat.id]
+        save_dicts_to_file(chat_mute_clocks_dict , "dicts.jason")
+        bot.send_message(message.chat.id , "The time periods for silence have been successfully lifted.")
+    else: bot.reply_to(message, "Respectfully, it appears you lack the necessary administrative privileges. Orders can only be accepted from those holding the esteemed position of admin, as per protocol.")
+
+@bot.message_handler(commands=['get_status'])
+def handle_get_status(message):
+    send_status(message.chat.id)
 
 def scheduler():
     while True:
