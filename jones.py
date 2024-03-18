@@ -2,12 +2,72 @@ import telebot
 from telebot import types
 import re
 import clock
+import json
+import schedule
+import time
+import pytz
+from datetime import datetime
+
+
+
+tzone = "Iran"
 
 with open('api_key.txt', 'r') as file : api_key = file.readline().strip()
-chat_permissions_dict = {}
-chat_mute_clocks_dict = {}
+bot = telebot.TeleBot(api_key)
+
+def save_dicts_to_file(chat_permissions_dict , chat_mute_clocks_dict, filename):
+    with open(filename, 'w') as file:
+        json.dump((chat_permissions_dict , chat_mute_clocks_dict), file)
+
+def load_dicts_from_file(filename):
+    try:
+        with open(filename, 'r') as file:
+            chat_permissions_dict , chat_mute_clocks_dict = json.load(file)
+    except FileNotFoundError:
+        chat_permissions_dict , chat_mute_clocks_dict= {}, {}
+    return chat_permissions_dict , chat_mute_clocks_dict
+
+
+chat_permissions_dict , chat_mute_clocks_dict = load_dicts_from_file("dicts.jason")
+
+def mute_group(chat_id):
+    mute_permissions = types.ChatPermissions(can_send_messages=False)
+    bot.set_chat_permissions(chat_id, mute_permissions)
+def unmute_group(chat_id):
+    unmute_permissions = chat_permissions_dict[chat_id]
+    bot.set_chat_permissions(chat_id, unmute_permissions)
+def send_warn(chat_id):
+    bot.send_message(chat_id, "Attention! The group is scheduled for closure in precisely 15 minutes. Prepare yourselves accordingly!")
+
+
+
+def schedule_mute(chat_mute_clocks_dict):
+    schedule.clear()
+    for key in chat_mute_clocks_dict.keys():
+        chat_id = key
+        mute_time , unmute_time = clock.split_clocks(chat_mute_clocks_dict[key])
+        current_time = datetime.now(pytz.timezone(tzone))
+        for times in mute_time:
+            hour, minute = map(int, times.split(':'))
+            schedule_time = current_time.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            schedule.every().day.at(schedule_time.strftime("%H:%M")).do(mute_group, key)
+        for times in mute_time:
+            hour, minute = map(int, times.split(':'))
+            minutes = (60 * hour) + minute -15
+            minute = minutes % 60
+            hour = (minutes - minute) / 60
+            schedule_time = current_time.replace(hour=int(hour), minute=int(minute), second=0, microsecond=0)
+            schedule.every().day.at(schedule_time.strftime("%H:%M")).do(send_warn, key)
+        for times in unmute_time:
+            hour, minute = map(int, times.split(':'))
+            schedule_time = current_time.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            schedule.every().day.at(schedule_time.strftime("%H:%M")).do(unmute_group, key)
+
+schedule_mute(chat_mute_clocks_dict)
 
 time_range_pattern = re.compile(r'^\d{2}:\d{2}-\d{2}:\d{2}$')
+
+
 def is_admin(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
@@ -22,8 +82,7 @@ def can_mute_all(chat_id):
         return True
     else:
         return False
-
-bot = telebot.TeleBot(api_key)
+    
 
 @bot.message_handler(func=lambda message: message.chat.type == 'private')
 def private_message(message):
@@ -36,7 +95,7 @@ def handle_mute_command(message):
     chat = message.chat
     user = message.from_user
 
-    mute_permissions = types.ChatPermissions(can_send_messages=False)
+
     if  is_admin(message):
         if len(message.text.split()) > 1:
             time_range = ' '.join(message.text.split()[1:])
@@ -46,13 +105,24 @@ def handle_mute_command(message):
                     chat_mute_clocks_dict[chat.id] = list(set(chat_mute_clocks_dict[chat.id]))#remove dupplications
                     chat_mute_clocks_dict[chat.id] = clock.No_clock_interference(chat_mute_clocks_dict[chat.id])#manage interferences
                     clocks_strings = '\n'.join(chat_mute_clocks_dict[chat.id])
+                    save_dicts_to_file(chat_permissions_dict , chat_mute_clocks_dict, "dicts.jason")
                     bot.reply_to(message, f"These designated times are established as periods during which communication is restricted:\n{clocks_strings}")
-                else: bot.reply_to(message, "admin nistam")
+                    schedule_mute(chat_mute_clocks_dict)
+                else: bot.reply_to(message, "it appears an issue has arisen. It's plausible that I lack the necessary administrative privileges or permissions to enact the mute function.")
             else:
                 bot.reply_to(message, "The time range format provided is invalid. Kindly adhere to the standard HH:MM-HH:MM format, as exemplified: 12:30-16:20.")
         else:
             bot.reply_to(message, "After executing the /mute command, kindly furnish a time range following the format HH:MM-HH:MM, as exemplified: 12:30-16:20.")
     else: bot.reply_to(message, "Respectfully, it appears you lack the necessary administrative privileges. Orders can only be accepted from those holding the esteemed position of admin, as per protocol.")
     return
+
+
+def scheduler():
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+import threading
+scheduler_thread = threading.Thread(target=scheduler)
+scheduler_thread.start()
 
 bot.infinity_polling()

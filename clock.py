@@ -46,3 +46,11 @@ def minutes_to_time(minutes):
 
 def No_clock_interference(period_list):
     return merge_time_periods(period_list)
+
+
+def split_clocks(clocks):
+    first_clocks = [clock.split('-')[0] for clock in clocks]
+    second_clocks = [clock.split('-')[1] for clock in clocks]
+    
+    return first_clocks, second_clocks
+
