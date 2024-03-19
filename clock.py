@@ -61,7 +61,7 @@ def split_clocks(clocks):
 def reduce_rime(time , min):
     hour,minute = map(int, time.split(':'))
     minutes = (60 * hour) + minute - min
-    if (minute < 0) : minutes = minutes + (24*60)
+    if (minutes < 0) : minutes = minutes + (24*60)
     minute = minutes % 60
     hour = (minutes - minute) / 60
     return  hour , minute
