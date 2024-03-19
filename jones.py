@@ -63,8 +63,8 @@ def can_mute_all(chat_id):
 def send_status(chat_id):
     if (chat_id in chat_mute_clocks_dict):
         clocks_strings = '\n'.join(chat_mute_clocks_dict[chat_id])
-        bot.send_message(chat_id, f"These designated times are established as periods during which communication is restricted:\n{clocks_strings}")
-    else : bot.send_message(chat_id,"There are presently no established time periods for group silence.")
+        bot.send_message(chat_id, f"These designated times are established as periods during which communication is restricted:\n<b>{clocks_strings}</b>" , "HTML")
+    else : bot.send_message(chat_id,"There are presently <b>no established time periods</b> for group silence." , "HTML")
 
 
 chat_mute_clocks_dict = load_from_file_dict("mute_clocks_dict.jason")
@@ -84,7 +84,7 @@ def mute_group(chat_id):
         can_manage_topics=permissions.can_manage_topics
     )
     bot.set_chat_permissions(chat_id, mute_permissions)
-    bot.send_message(chat_id , "The designated time for silence has now commenced. All communication is hereby prohibited. I respectfully request that the admins refrain from engaging in chat.")
+    bot.send_message(chat_id , "The designated time for silence has now commenced.<b>All communication is hereby prohibited</b>. I respectfully request that the admins refrain from engaging in chat." , "HTML")
     
 def unmute_group(chat_id):
     permissions = bot.get_chat(chat_id).permissions
@@ -100,10 +100,10 @@ def unmute_group(chat_id):
         can_manage_topics=permissions.can_manage_topics
     )
     bot.set_chat_permissions(chat_id, unmute_permissions)
-    bot.send_message(chat_id , "The designated time for silence has concluded! Communication may now resume without restriction.")
+    bot.send_message(chat_id , "<b>The designated time for silence has concluded!</b> Communication may now resume without restriction." , "HTML")
 
 def send_warn(chat_id , min):
-    bot.send_message(chat_id, f"Attention! The group is scheduled for closure in precisely {min} minutes. Prepare yourselves accordingly!")
+    bot.send_message(chat_id, f"<b>Attention!</b> The group is scheduled for closure in precisely <b>{min}</b> minutes. <b>Prepare yourselves accordingly!</b>" , "HTML")
 
 def say_hello(chat_id):
     bot.send_message(chat_id, "General Jones here, ready to enforce order. Tell me the time and I'll lock down the chat for maximum focus. Remember, discipline is key!")
@@ -112,15 +112,15 @@ def say_hello(chat_id):
 def do_delete(status ,chat_id):
     global chat_ids_to_delete
     if not (can_mute_all(chat_id)):
-        bot.send_message(chat_id , "it appears an issue has arisen. It's plausible that I lack the necessary administrative privileges or permissions to enact the mute function.")
+        bot.send_message(chat_id , "it appears an issue has arisen. It's plausible that <b>I lack the necessary administrative privileges or permissions</b> to enact the mute function." , "HTML")
         return
     if(status):
-        bot.send_message(chat_id , "Now is the time for silence. I will proceed to clear messages, except for those from admins. Moreover, I request that admins abstain from initiating any chat during this period.")
+        bot.send_message(chat_id , "<b>Now is the time for silence.</b> I will proceed to clear messages, except for those from admins. Moreover, I request that admins abstain from initiating any chat during this period." , "HTML")
         chat_ids_to_delete.append(chat_id)
         chat_ids_to_delete = list(set(chat_ids_to_delete))
         save_to_file(chat_ids_to_delete , 'delete_list.jason' )
     else:
-        bot.send_message(chat_id , "The period of silence has ended. All members are now free to engage in chat.")
+        bot.send_message(chat_id , "<b>The period of silence has ended.</b> All members are now free to engage in chat." , "HTML")
         if (chat_id in chat_ids_to_delete): chat_ids_to_delete.remove(chat_id) 
         save_to_file(chat_ids_to_delete , 'delete_list.jason' )
 
@@ -197,7 +197,7 @@ def handle_mute_command(message):
             else:
                 bot.reply_to(message, "The time range format provided is invalid. Kindly adhere to the standard HH:MM-HH:MM format, as exemplified: 12:30-16:20.")
         else:
-            bot.reply_to(message, "After executing the /mute command, kindly furnish a time range following the format HH:MM-HH:MM, as exemplified: 12:30-16:20.")
+            bot.reply_to(message, "After executing the /clocks command, kindly furnish a time range following the format HH:MM-HH:MM, as exemplified: 12:30-16:20.")
 
     else: bot.reply_to(message, "Respectfully, it appears you lack the necessary administrative privileges. Orders can only be accepted from those holding the esteemed position of admin, as per protocol.")
     return
