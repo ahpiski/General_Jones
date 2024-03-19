@@ -2,7 +2,7 @@
 from datetime import datetime
 import pytz
 
-tzone = "Iran"
+tzone = "Asia/Tehran"
 
 def merge_time_periods(time_periods):
     time_dict = {}
