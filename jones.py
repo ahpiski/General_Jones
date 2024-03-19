@@ -220,7 +220,7 @@ def handle_get_status(message):
 
 @bot.message_handler(commands=['help'])
 def handle_help(message):
-    bot.reply_to(message , "To establish mute time periods, issue the command /mute.\nTo clear the mute periods table, use /clear.\nFor a status update on mute time periods, use /get_status.\nTo mute the group, utilize /set mute. Conversely, for unmuting, issue /set unmute.")
+    bot.reply_to(message , "Command list: /clocks for establishing silence timetable (e.g., 19:20-21:30), /set delete_mode to enable message deletion mode, /set mute_mode for muting the group, /set delete_on or delete_off, and /mute or /unmute to activate modes without a timetable. Use /clear to clear the timetable.\n")
 
 @bot.message_handler(commands=['set'])
 def handle_set(message):
