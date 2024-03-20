@@ -246,14 +246,21 @@ def greet_new_members(message):
             say_hello(message.chat.id)
             break
 
-@bot.message_handler(func=lambda message: True)
+@bot.message_handler(content_types=['text', 'photo', 'animation','audio', 'document', 'sticker', 'video', 'voice', 'video_note', 'contact', 'location', 'venue', 'new_chat_members', 'left_chat_member', 'new_chat_title', 'new_chat_photo', 'delete_chat_photo', 'group_chat_created', 'supergroup_chat_created', 'channel_chat_created', 'migrate_to_chat_id', 'migrate_from_chat_id', 'pinned_message'])
 def delete_messages(message):
     chat_id = message.chat.id
     if is_admin(message):
         return
     if chat_id in chat_ids_to_delete:
         bot.delete_message(chat_id, message.message_id)
-
+@bot.edited_message_handler(func=lambda edited_message: True , content_types=['text', 'photo', 'animation','audio', 'document', 'sticker', 'video', 'voice', 'video_note', 'contact', 'location', 'venue', 'new_chat_members', 'left_chat_member', 'new_chat_title', 'new_chat_photo', 'delete_chat_photo', 'group_chat_created', 'supergroup_chat_created', 'channel_chat_created', 'migrate_to_chat_id', 'migrate_from_chat_id', 'pinned_message'])
+def handle_edited_message(edited_message):
+    chat_id = edited_message.chat.id
+    message_id = edited_message.message_id
+    if is_admin(edited_message):
+        return
+    if chat_id in chat_ids_to_delete:
+        bot.delete_message(chat_id, edited_message.message_id)
 
 def scheduler():
     while True:
